@@ -40,7 +40,6 @@ const createEditor = (doc) => {
     state,
     parent: editorEl,
   });
-
   const targetEl = document.querySelector(`#${doc.id} .target`);
   targetEl.value = doc.target;
 

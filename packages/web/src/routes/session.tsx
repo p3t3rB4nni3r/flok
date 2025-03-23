@@ -250,6 +250,7 @@ export function Component() {
 
     // If documents change on server, update state
     newSession.on("change", (documents) => {
+      console.log("On change", documents);
       setDocuments(documents);
 
       postMessageParentWindow({

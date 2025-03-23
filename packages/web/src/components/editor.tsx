@@ -10,6 +10,8 @@ import "../assets/fonts/VT323/stylesheet.css";
 import "../assets/fonts/RobotoMono/stylesheet.css";
 import "../assets/fonts/UbuntuMono/stylesheet.css";
 import "../assets/fonts/OpenDyslexic/stylesheet.css";
+import { PubSubClient } from "@flok-editor/pubsub"; // Import the PubSubClient
+import osc from "osc";
 
 import { useQuery } from "@/hooks/use-query";
 import {
@@ -37,11 +39,12 @@ import CodeMirror, {
   ReactCodeMirrorRef,
 } from "@uiw/react-codemirror";
 import { vim } from "@replit/codemirror-vim";
-import React, { useEffect, useState } from "react";
+import React, {useEffect, useRef, useState} from "react";
 import { yCollab } from "y-codemirror.next";
 import { UndoManager } from "yjs";
 import themes from "@/lib/themes";
 import { toggleLineComment, insertNewline } from "@codemirror/commands";
+const { UDPPort } = osc;
 
 const defaultLanguage = "javascript";
 const langByTarget = langByTargetUntyped as { [lang: string]: string };
@@ -52,7 +55,9 @@ const langExtensionsByLanguage: { [lang: string]: any } = {
   punctual: punctual,
 };
 const panicCodes = panicCodesUntyped as { [target: string]: string };
-
+let socket: WebSocket;
+let isOpened = false;
+let hasStarted = false;
 const panicKeymap = (
   doc: Document,
   keys: string[] = ["Cmd-.", "Ctrl-.", "Alt-."],
@@ -142,12 +147,97 @@ export const Editor = ({ document, settings, ref, ...props }: EditorProps) => {
   const [mounted, setMounted] = useState(false);
   const query = useQuery();
 
-  // useEffect only runs on the client, so now we can safely show the UI
+  function connectWebSocket() {
+    hasStarted = true;
+    socket = new WebSocket('ws://localhost:3335');
+
+    socket.onopen = () => {
+      console.log("WebSocket connection established");
+      isOpened = true;
+
+    };
+
+    socket.onclose = () => {
+      //console.log("WebSocket closed, trying to reconnect...");
+      // Optionally, implement a reconnection strategy
+      setTimeout(connectWebSocket, 1000);  // Try to reconnect after 1 second
+    };
+
+    socket.onerror = (error) => {
+      console.error("WebSocket error: ", error);
+    };
+  }
+
+  function sendOscMessage(message) {
+    if (socket.readyState === WebSocket.OPEN) {
+      socket.send(message);
+    } else {
+      console.error("WebSocket is not open. Current state: " + socket.readyState);
+    }
+  }
+
+// Initial connection
+  if (!hasStarted)
+    connectWebSocket();
+
+
+
   useEffect(() => {
     // Make sure query parameters are set before loading the editor
     if (!query) return;
     setMounted(true);
   }, [query]);
+
+
+  useEffect(() => {
+    if (!document) return;
+
+    // Listen for changes in the Yjs document
+    const yText = document.getText();
+    const observer = (event: any) => {
+      setTimeout(() => {
+        const cmContentElement = window.document.querySelector('.cm-content');
+        // Publish changes via PubSubClient (use the ref here)
+        if (isOpened)
+          socket.send(JSON.stringify({ html: cmContentElement?.innerHTML?.trim() || "", address: '/flok'}));
+      }, 20);
+    };
+
+    // Observe changes in the Yjs document
+    yText.observe(observer);
+
+    // Create a MutationObserver to listen to DOM changes
+    const mutationObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        const cmContentElement = window.document.querySelector('.cm-content');
+        // Publish changes via PubSubClient when DOM changes
+        if (isOpened) {
+          socket.send(JSON.stringify({ html: cmContentElement?.innerHTML?.trim() || "", address: '/flok' }));
+        }
+      });
+    });
+
+    setTimeout(() => {
+      const cmContentElement = window.document.querySelector('.cm-content');
+      if (cmContentElement) {
+        mutationObserver.observe(cmContentElement, {
+          childList: true, // Observe direct children
+          subtree: true,   // Observe all descendants
+          characterData: true, // Observe changes to text content
+        });
+      }
+    }, 200)
+    // Start observing the '.cm-content' element for changes
+
+
+    // Cleanup the observers when the component is unmounted or document changes
+    return () => {
+      yText.unobserve(observer);
+      mutationObserver.disconnect();
+    };
+  }, [document]);
+  // Re-run when the document changes
+
 
   if (!mounted || !document) {
     return null;

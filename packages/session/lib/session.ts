@@ -217,6 +217,7 @@ export class Session {
     if (mode === "web" || mode === "webLocal") {
       this._emitter.emit(`eval`, msg);
       this._emitter.emit(`eval:${target}`, msg);
+      console.log("Emitting eval event", msg, target);
     }
 
     // If not evaluating locally, publish to :eval topic

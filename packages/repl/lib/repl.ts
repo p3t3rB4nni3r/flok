@@ -64,6 +64,13 @@ abstract class BaseREPL {
         this.write(body);
       },
     );
+
+    this.pubSub.subscribe(
+      `session:${session}:target:${target}:change`,
+      (value) => {
+        console.log('editor:change', value)
+      },
+    );
   }
 
   abstract write(body: string);
@@ -78,6 +85,9 @@ abstract class BaseREPL {
     this.pubSub.start();
     this.pubSub.on("error", (err) => {
       debug("error", err);
+    });
+    this.pubSub.on("message", (evt) => {
+      console.log('message', evt)
     });
     this.pubSub.on("open", () => {
       debug("open");
@@ -100,7 +110,6 @@ class CommandREPL extends BaseREPL {
       pubSubPath,
       extraOptions,
     });
-
     const { command, args } = ctx;
     this.command = command;
     this.args = args;

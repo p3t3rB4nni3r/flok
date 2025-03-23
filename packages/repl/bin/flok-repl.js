@@ -54,6 +54,7 @@ options.forEach((opt) => {
 
 const { hub, sessionName, targetName, tags, path: pubSubPath } = config;
 
+console.log("Configuration", config)
 // Remove duplicates
 const types = [...new Set(config.types)];
 
@@ -127,7 +128,7 @@ types.forEach((type) => {
       session: sessionName,
       tags,
       hub,
-      pubSubPath,
+        pubSubPath,
       extraOptions,
     });
   } else {
