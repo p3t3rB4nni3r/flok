@@ -10,7 +10,6 @@ import "../assets/fonts/VT323/stylesheet.css";
 import "../assets/fonts/RobotoMono/stylesheet.css";
 import "../assets/fonts/UbuntuMono/stylesheet.css";
 import "../assets/fonts/OpenDyslexic/stylesheet.css";
-import { PubSubClient } from "@flok-editor/pubsub"; // Import the PubSubClient
 import osc from "osc";
 
 import { useQuery } from "@/hooks/use-query";
@@ -40,12 +39,11 @@ import CodeMirror, {
   ReactCodeMirrorRef,
 } from "@uiw/react-codemirror";
 import { vim } from "@replit/codemirror-vim";
-import React, {useEffect, useRef, useState} from "react";
+import React, {useEffect, useState} from "react";
 import { yCollab } from "y-codemirror.next";
 import { UndoManager } from "yjs";
 import themes from "@/lib/themes";
 import { toggleLineComment, insertNewline } from "@codemirror/commands";
-const { UDPPort } = osc;
 
 const defaultLanguage = "javascript";
 const langByTarget = langByTargetUntyped as { [lang: string]: string };
@@ -168,7 +166,7 @@ function parseTextWithFormatting(rawText: string, htmlString: string | undefined
       let currentClass = "plain";
 
       lineElement.childNodes.forEach((node) => {
-        if (node.nodeType === Node.ELEMENT_NODE && node.tagName === "SPAN") {
+        if (node.nodeType === Node.ELEMENT_NODE && (node as any).tagName === "SPAN") {
           const spanElement = node as HTMLSpanElement;
           const spanText = spanElement.textContent || "";
           let c = spanElement.className || "plain";
@@ -267,7 +265,7 @@ export const Editor = ({ document, settings, ref, ...props }: EditorProps) => {
 
     // Listen for changes in the Yjs document
     const yText = document.getText();
-    const observer = (event: any) => {
+    const observer = () => {
       setTimeout(() => {
         const cmContentElement = window.document.querySelector('.cm-content');
         // Publish changes via PubSubClient (use the ref here)
@@ -282,7 +280,7 @@ export const Editor = ({ document, settings, ref, ...props }: EditorProps) => {
     let caretPositionY = 0;
     // Create a MutationObserver to listen to DOM changes
     const mutationObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
+      mutations.forEach(() => {
 
         const caretElement = window.document.querySelector('.cm-ySelectionCaret');
         const caretPosition = caretElement?.getBoundingClientRect();
