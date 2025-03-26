@@ -135,6 +135,7 @@ export interface EditorSettings {
   lineNumbers: boolean;
   wrapText: boolean;
   vimMode: boolean;
+  username: string;
 }
 
 export interface EditorProps extends ReactCodeMirrorProps {
@@ -224,7 +225,7 @@ function parseTextWithFormatting(rawText: string, htmlString: string | undefined
 export const Editor = ({ document, settings, ref, ...props }: EditorProps) => {
   const [mounted, setMounted] = useState(false);
   const query = useQuery();
-
+  const username = settings?.username || "anonymous";
   function connectWebSocket() {
     hasStarted = true;
     socket = new WebSocket('ws://localhost:3335');
@@ -269,11 +270,9 @@ export const Editor = ({ document, settings, ref, ...props }: EditorProps) => {
     const observer = (event: any) => {
       setTimeout(() => {
         const cmContentElement = window.document.querySelector('.cm-content');
-        console.log(document.getText().toJSON().toString());
-        console.log(parseTextWithFormatting(document.getText().toJSON().toString() + " ", cmContentElement?.innerHTML?.trim()));
         // Publish changes via PubSubClient (use the ref here)
         if (isOpened)
-          socket.send(JSON.stringify({ html: parseTextWithFormatting(document.getText().toJSON().toString() + " ", cmContentElement?.innerHTML?.trim()) || "", address: '/flok'}));
+          socket.send(JSON.stringify({ html: parseTextWithFormatting(document.getText().toJSON().toString() + " ", cmContentElement?.innerHTML?.trim()) || "", address: '/flok', username }));
       }, 20);
     };
 
@@ -295,7 +294,7 @@ export const Editor = ({ document, settings, ref, ...props }: EditorProps) => {
             // Publish changes via PubSubClient when caret position changes
             if (isOpened) {
               const cmContentElement = window.document.querySelector('.cm-content');
-              socket.send(JSON.stringify({ html: parseTextWithFormatting(document.getText().toJSON().toString() + " ", cmContentElement?.innerHTML?.trim()) || "", address: '/flok'}));
+              socket.send(JSON.stringify({ html: parseTextWithFormatting(document.getText().toJSON().toString() + " ", cmContentElement?.innerHTML?.trim()) || "", address: '/flok', username}));
             }
           }
         }
@@ -314,7 +313,7 @@ export const Editor = ({ document, settings, ref, ...props }: EditorProps) => {
 
         // You can publish this data as needed, for example:
         if (isOpened) {
-          socket.send(JSON.stringify({ scrollTop, address: '/flok/scrollChange' }));
+          socket.send(JSON.stringify({ scrollTop, address: '/flok/scrollChange', username }));
         }
       };
 

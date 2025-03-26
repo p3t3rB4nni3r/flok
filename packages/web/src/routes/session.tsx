@@ -65,6 +65,7 @@ const defaultEditorSettings: EditorSettings = {
   fontFamily: "Inconsolata",
   theme: "oneDark",
   wrapText: false,
+  username: "",
 };
 
 interface SessionLoaderParams {
@@ -131,6 +132,10 @@ export function Component() {
       return defaultDisplaySettings;
     },
   );
+
+  useEffect(() => {
+    setEditorSettings((prev) => ({ ...prev, username }));
+  }, [username]);
 
   // Save editor settings to local storage
   useEffect(() => {
