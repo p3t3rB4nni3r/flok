@@ -304,13 +304,24 @@ export const Editor = ({ document, settings, ref, ...props }: EditorProps) => {
       const cmContentElement = window.document.querySelector('.cm-content');
       const cmThemeElement = window.document.querySelector('.cm-theme');
       const handleScroll = () => {
-        // Get scroll position (scrollTop is the number of pixels the document is scrolled vertically)
-        const scrollTop = cmThemeElement?.scrollTop || 0;
+        if (!cmThemeElement) return;
 
+        const scrollTop = cmThemeElement.scrollTop;
+        const scrollHeight = cmThemeElement.scrollHeight - cmThemeElement.clientHeight;
+        const scrollPercent = scrollHeight > 0 ? scrollTop / scrollHeight : 0;
 
-        // You can publish this data as needed, for example:
+        // Get device pixel ratio for scaling
+        const dpr = window.devicePixelRatio;
+
         if (isOpened) {
-          socket.send(JSON.stringify({ scrollTop, address: '/flok/scrollChange', username }));
+          socket.send(
+            JSON.stringify({
+              scrollPercent,
+              dpr, // Send device pixel ratio for better scaling
+              address: '/flok/scrollChange',
+              username,
+            })
+          );
         }
       };
 
