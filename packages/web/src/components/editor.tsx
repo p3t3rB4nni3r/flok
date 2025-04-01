@@ -44,6 +44,7 @@ import { UndoManager } from "yjs";
 import themes from "@/lib/themes";
 import { toggleLineComment, insertNewline } from "@codemirror/commands";
 
+const WS_SERVER_PORT = 3335;
 const defaultLanguage = "javascript";
 const langByTarget = langByTargetUntyped as { [lang: string]: string };
 const langExtensionsByLanguage: { [lang: string]: any } = {
@@ -225,12 +226,14 @@ export const Editor = ({ document, settings, ref, ...props }: EditorProps) => {
   const username = settings?.username || "anonymous";
   function connectWebSocket() {
     hasStarted = true;
-    socket = new WebSocket('ws://localhost:3335');
+    socket = new WebSocket(`ws://localhost:${WS_SERVER_PORT}`);
 
     socket.onopen = () => {
       console.log("WebSocket connection established");
       isOpened = true;
-
+      const clientId = `client-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      console.log('CONNECT WITH CLIENT ID', clientId);
+      socket.send(JSON.stringify({ address: "/register", clientId }));
     };
 
     socket.onclose = () => {
@@ -242,6 +245,8 @@ export const Editor = ({ document, settings, ref, ...props }: EditorProps) => {
     socket.onerror = (error) => {
       console.error("WebSocket error: ", error);
     };
+
+
   }
 
 
@@ -268,8 +273,13 @@ export const Editor = ({ document, settings, ref, ...props }: EditorProps) => {
       setTimeout(() => {
         const cmContentElement = window.document.querySelector('.cm-content');
         // Publish changes via PubSubClient (use the ref here)
-        if (isOpened)
-          socket.send(JSON.stringify({ html: parseTextWithFormatting(document.getText().toJSON().toString() + " ", cmContentElement?.innerHTML?.trim()) || "", address: '/flok', username }));
+        if (isOpened) {
+          socket.send(JSON.stringify({
+            html: parseTextWithFormatting(document.getText().toJSON().toString() + " ", cmContentElement?.innerHTML?.trim()) || "",
+            address: '/flok',
+            username
+          }));
+        }
       }, 20);
     };
 
@@ -383,7 +393,7 @@ export const Editor = ({ document, settings, ref, ...props }: EditorProps) => {
         padding: "0px",
       },
       ".cm-activeLine": {
-        "background-color": "rgba(0, 0, 0, 1) !important",
+        "background-color": "#4a4545 !important",
       },
       "& .cm-scroller": {
         minHeight: "100vh",
