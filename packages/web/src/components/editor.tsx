@@ -45,6 +45,7 @@ import themes from "@/lib/themes";
 import { toggleLineComment, insertNewline } from "@codemirror/commands";
 
 const WS_SERVER_PORT = 3335;
+const HOST = "localhost";
 const defaultLanguage = "javascript";
 const langByTarget = langByTargetUntyped as { [lang: string]: string };
 const langExtensionsByLanguage: { [lang: string]: any } = {
@@ -226,7 +227,7 @@ export const Editor = ({ document, settings, ref, ...props }: EditorProps) => {
   const username = settings?.username || "anonymous";
   function connectWebSocket() {
     hasStarted = true;
-    socket = new WebSocket(`ws://localhost:${WS_SERVER_PORT}`);
+    socket = new WebSocket(`ws://${HOST}:${WS_SERVER_PORT}`);
 
     socket.onopen = () => {
       console.log("WebSocket connection established");
@@ -244,6 +245,9 @@ export const Editor = ({ document, settings, ref, ...props }: EditorProps) => {
 
     socket.onerror = (error) => {
       console.error("WebSocket error: ", error);
+      if (socket.readyState === WebSocket.CLOSED) {
+        setTimeout(connectWebSocket, 1000);
+      }
     };
 
 
