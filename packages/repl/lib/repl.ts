@@ -46,7 +46,6 @@ abstract class BaseREPL {
     this.hub = hub || "ws://localhost:3000";
     this.pubSubPath = pubSubPath || "/pubsub";
     this.extraOptions = extraOptions || {};
-
     this.emitter = new EventEmitter();
 
     this._connectToPubSubServer();

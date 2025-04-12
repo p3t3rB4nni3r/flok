@@ -33,6 +33,7 @@ function createREPLFor(repl: string, ctx: CommandREPLContext) {
   }
 
   const replClass = replClasses.default;
+  console.log("ReplClass", replClass);
   return new replClass({ ...ctx, command: repl });
 }
 

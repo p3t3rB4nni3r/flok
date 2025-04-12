@@ -8,7 +8,6 @@ const debug = debugModule("flok:repl:tidal");
 class TidalREPL extends CommandREPL {
   constructor(ctx: CommandREPLContext) {
     super(ctx);
-
     this.command = this.commandPath("ghci");
     this.args = ["-ghci-script", this.bootScript()];
   }

@@ -134,7 +134,7 @@ export function Component() {
   );
 
   useEffect(() => {
-    setEditorSettings((prev) => ({ ...prev, username }));
+    setEditorSettings((prev) => ({ ...prev, username, }));
   }, [username]);
 
   // Save editor settings to local storage
