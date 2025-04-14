@@ -17,7 +17,7 @@ const flokBasicSetup = (doc) => {
 
   return [
     flashField(),
-    remoteEvalFlash(doc),
+    remoteEvalFlash(doc, (msg)=> {}),
     Prec.high(evalKeymap(doc, { web })),
     yCollab(text, doc.session.awareness, { undoManager }),
   ];

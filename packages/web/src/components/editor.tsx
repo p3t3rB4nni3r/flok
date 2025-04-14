@@ -45,7 +45,7 @@ import themes from "@/lib/themes";
 import { toggleLineComment, insertNewline } from "@codemirror/commands";
 
 const WS_SERVER_PORT = 3335;
-const HOST = "localhost";
+const HOST = "192.168.1.15";
 const defaultLanguage = "javascript";
 const langByTarget = langByTargetUntyped as { [lang: string]: string };
 const langExtensionsByLanguage: { [lang: string]: any } = {
@@ -55,7 +55,8 @@ const langExtensionsByLanguage: { [lang: string]: any } = {
   punctual: punctual,
 };
 const panicCodes = panicCodesUntyped as { [target: string]: string };
-let socket: WebSocket;
+export let socket: WebSocket |undefined = undefined;
+
 let isOpened = false;
 let hasStarted = false;
 const panicKeymap = (
@@ -115,7 +116,13 @@ const flokSetup = (
 
   return [
     flashField(),
-    remoteEvalFlash(doc),
+    remoteEvalFlash(doc, (msg) => {
+      socket?.send(JSON.stringify({
+        address: '/flok/eval',
+        username: editorUsername,
+        msg
+      }));
+    }),
     Prec.high(evalKeymap(doc, { defaultMode, web })),
     panicKeymap(doc),
     extraKeymap(),
@@ -220,39 +227,40 @@ function parseTextWithFormatting(rawText: string, htmlString: string | undefined
   return;
 }
 
+function connectWebSocket() {
+  hasStarted = true;
+  socket = new WebSocket(`ws://${HOST}:${WS_SERVER_PORT}`);
 
+  socket.onopen = () => {
+    console.log("WebSocket connection established");
+    isOpened = true;
+    const clientId = `client-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    console.log('CONNECT WITH CLIENT ID', clientId);
+    socket?.send(JSON.stringify({ address: "/register", clientId }));
+  };
+
+  socket.onclose = () => {
+    //console.log("WebSocket closed, trying to reconnect...");
+    // Optionally, implement a reconnection strategy
+    setTimeout(connectWebSocket, 1000);  // Try to reconnect after 1 second
+  };
+
+  socket.onerror = (error) => {
+    console.error("WebSocket error: ", error);
+    if (socket?.readyState === WebSocket.CLOSED) {
+      setTimeout(connectWebSocket, 1000);
+    }
+  };
+
+
+}
+
+export let editorUsername = '';
 export const Editor = ({ document, settings, ref, ...props }: EditorProps) => {
   const [mounted, setMounted] = useState(false);
   const query = useQuery();
   const username = settings?.username || "anonymous";
-  function connectWebSocket() {
-    hasStarted = true;
-    socket = new WebSocket(`ws://${HOST}:${WS_SERVER_PORT}`);
-
-    socket.onopen = () => {
-      console.log("WebSocket connection established");
-      isOpened = true;
-      const clientId = `client-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      console.log('CONNECT WITH CLIENT ID', clientId);
-      socket.send(JSON.stringify({ address: "/register", clientId }));
-    };
-
-    socket.onclose = () => {
-      //console.log("WebSocket closed, trying to reconnect...");
-      // Optionally, implement a reconnection strategy
-      setTimeout(connectWebSocket, 1000);  // Try to reconnect after 1 second
-    };
-
-    socket.onerror = (error) => {
-      console.error("WebSocket error: ", error);
-      if (socket.readyState === WebSocket.CLOSED) {
-        setTimeout(connectWebSocket, 1000);
-      }
-    };
-
-
-  }
-
+  editorUsername = username;
 
 
 // Initial connection
@@ -278,7 +286,7 @@ export const Editor = ({ document, settings, ref, ...props }: EditorProps) => {
         const cmContentElement = window.document.querySelector('.cm-content');
         // Publish changes via PubSubClient (use the ref here)
         if (isOpened) {
-          socket.send(JSON.stringify({
+          socket?.send(JSON.stringify({
             html: parseTextWithFormatting(document.getText().toJSON().toString() + " ", cmContentElement?.innerHTML?.trim()) || "",
             address: '/flok',
             username
@@ -305,7 +313,7 @@ export const Editor = ({ document, settings, ref, ...props }: EditorProps) => {
             // Publish changes via PubSubClient when caret position changes
             if (isOpened) {
               const cmContentElement = window.document.querySelector('.cm-content');
-              socket.send(JSON.stringify({ html: parseTextWithFormatting(document.getText().toJSON().toString() + " ", cmContentElement?.innerHTML?.trim()) || "", address: '/flok', username}));
+              socket?.send(JSON.stringify({ html: parseTextWithFormatting(document.getText().toJSON().toString() + " ", cmContentElement?.innerHTML?.trim()) || "", address: '/flok', username}));
             }
           }
         }
@@ -328,7 +336,7 @@ export const Editor = ({ document, settings, ref, ...props }: EditorProps) => {
         const dpr = window.devicePixelRatio;
 
         if (isOpened) {
-          socket.send(
+          socket?.send(
             JSON.stringify({
               scrollPercent,
               dpr, // Send device pixel ratio for better scaling
